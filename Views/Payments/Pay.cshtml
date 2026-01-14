@@ -1,0 +1,72 @@
+@model TravelAgency.Models.ViewModels.PaymentViewModel
+
+<h2>Secure Payment</h2>
+
+<p><strong>Trip:</strong> @Model.TripName</p>
+<p><strong>Total:</strong> €@Model.Amount</p>
+
+<form asp-action="Process" method="post" class="mt-4">
+    @Html.AntiForgeryToken()
+
+    <input type="hidden" asp-for="BookingId" />
+    <input type="hidden" asp-for="Amount" />
+    <input type="hidden" asp-for="TripName" />
+
+    <div class="mb-3">
+        <label class="form-label">Payment method</label>
+        <select asp-for="PaymentMethod" class="form-select">
+            <option value="CreditCard">Credit Card</option>
+            <option value="PayPal">PayPal</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="CardNumber" class="form-label"></label>
+        <input asp-for="CardNumber" class="form-control" placeholder="16 digits" />
+        <span asp-validation-for="CardNumber" class="text-danger"></span>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Expiry month</label>
+            <select asp-for="ExpiryMonth" class="form-select">
+                @for (int m = 1; m <= 12; m++)
+                {
+                    <option value="@m">@m.ToString("D2")</option>
+                }
+            </select>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Expiry year</label>
+            <select asp-for="ExpiryYear" class="form-select">
+                @{
+                    var startYear = DateTime.UtcNow.Year; // 2026 for you now
+                    var endYear = startYear + 10;
+                }
+                @for (int y = startYear; y <= endYear; y++)
+                {
+                    <option value="@y">@y</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="CVV" class="form-label"></label>
+        <input asp-for="CVV" class="form-control" placeholder="3 digits" />
+        <span asp-validation-for="CVV" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-success btn-lg w-100">
+        Pay Securely
+    </button>
+
+    <p class="text-muted mt-3">
+        No credit card details are stored in the database.
+    </p>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

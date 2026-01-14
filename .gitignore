@@ -1,0 +1,17 @@
+# Build output
+bin/
+obj/
+
+# Database
+*.db
+*.sqlite
+
+# User secrets / local config
+appsettings.Development.json
+
+# Visual Studio
+.vs/
+
+# OS
+Thumbs.db
+.DS_Store

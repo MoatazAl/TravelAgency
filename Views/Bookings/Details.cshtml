@@ -1,0 +1,73 @@
+@model TravelAgency.Models.Booking
+@using TravelAgency.Models
+
+@{
+    ViewData["Title"] = "Booking Details";
+
+    bool canCancel =
+        Model.Status == BookingStatus.PendingPayment ||
+        (Model.Status == BookingStatus.Confirmed &&
+         DateTime.Today <= Model.CancellationAllowedUntil.Date);
+}
+
+<h2>Booking Details</h2>
+
+<div class="card p-4 mt-3">
+
+    <h4>@Model.TravelPackage.Name</h4>
+
+    <!-- DATES видно وواضح -->
+    <p>
+        <strong>Dates:</strong>
+        @Model.DepartureDate.ToString("dd MMM yyyy")
+        –
+        @Model.TravelPackage.EndDate.ToString("dd MMM yyyy")
+    </p>
+
+    <p>
+        <strong>Total:</strong>
+        €@Model.TotalPrice
+    </p>
+
+    <p>
+        <strong>Status:</strong>
+        <span class="badge
+            @(Model.Status == BookingStatus.Confirmed ? "bg-success" :
+              Model.Status == BookingStatus.PendingPayment ? "bg-warning text-dark" :
+              "bg-secondary")">
+            @Model.Status
+        </span>
+    </p>
+
+    <p class="text-muted">
+        Booked on @Model.BookingDate.ToString("dd MMM yyyy")
+    </p>
+
+    <!-- PAY ONLY IF PENDING -->
+    @if (Model.Status == BookingStatus.PendingPayment)
+    {
+        <a asp-controller="Payments"
+           asp-action="Pay"
+           asp-route-bookingId="@Model.Id"
+           class="btn btn-danger mt-2">
+            Pay Now
+        </a>
+    }
+
+    <!-- CANCEL IF ALLOWED -->
+    @if (canCancel)
+    {
+        <form asp-action="Cancel" method="post" class="mt-3">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button class="btn btn-outline-danger">
+                Cancel Booking
+            </button>
+        </form>
+    }
+
+    <a asp-action="MyBookings" class="btn btn-secondary mt-3">
+        Back to My Bookings
+    </a>
+
+</div>

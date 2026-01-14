@@ -1,0 +1,36 @@
+@model TravelAgency.Models.Booking
+@using TravelAgency.Models
+
+<h2>Booking Confirmed</h2>
+
+<div class="card p-4 mt-3">
+
+    <h4>@Model.TravelPackage.Name</h4>
+
+    <p>
+        Status:
+        <span class="badge bg-warning">
+            @Model.Status
+        </span>
+    </p>
+
+    <p><strong>Total price:</strong> €@Model.TotalPrice</p>
+    <p><strong>Booking date:</strong> @Model.BookingDate.ToString("dd MMM yyyy")</p>
+
+    <div class="alert alert-info">
+        Your booking is reserved. Payment is required to confirm it.
+    </div>
+
+    <a asp-controller="Payments"
+       asp-action="Pay"
+       asp-route-bookingId="@Model.Id"
+       class="btn btn-danger btn-lg w-100">
+        Proceed to Payment
+    </a>
+
+    <a asp-controller="Trips"
+       asp-action="Index"
+       class="btn btn-outline-secondary w-100 mt-3">
+        Back to Trips
+    </a>
+</div>

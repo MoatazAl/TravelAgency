@@ -1,0 +1,171 @@
+@model TravelAgency.Models.ViewModels.TripsIndexViewModel
+
+@{
+    ViewData["Title"] = "Find your next trip";
+}
+
+<!-- HERO SEARCH BAR -->
+<div class="trip-hero mb-4">
+    <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+        <div>
+            <h2 class="mb-1">Where do you want to go?</h2>
+            <p class="mb-0 small">
+                @Model.TotalTripsCount trips available worldwide · Real packages · Real destinations
+            </p>
+        </div>
+
+        <form method="get" class="w-100 w-md-50">
+            <div class="input-group">
+                <input type="text" name="search" value="@Model.Search" class="form-control trip-search-input"
+                    placeholder="Search by destination, country, or trip name..." />
+                <button class="btn btn-buy-now" type="submit">Search</button>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 mt-2 align-items-center">
+                <select name="category" class="form-select form-select-sm w-auto">
+                    <option value="">All categories</option>
+                    @foreach (var cat in Model.Categories)
+                    {
+                        <option value="@cat" selected="@(cat == Model.Category)">
+                            @cat
+                        </option>
+                    }
+                </select>
+
+                <select name="sortOrder" class="form-select form-select-sm w-auto">
+                    <option value="">Sort by</option>
+                    <option value="price_asc" selected="@(Model.SortOrder == "price_asc")">Price: low to high</option>
+                    <option value="price_desc" selected="@(Model.SortOrder == "price_desc")">Price: high to low</option>
+                    <option value="date_asc" selected="@(Model.SortOrder == "date_asc")">Nearest departure</option>
+                    <option value="date_desc" selected="@(Model.SortOrder == "date_desc")">Furthest departure</option>
+                    <option value="rooms_desc" selected="@(Model.SortOrder == "rooms_desc")">Most rooms left</option>
+                    <option value="name" selected="@(Model.SortOrder == "name")">Name (A–Z)</option>
+                </select>
+
+                <div class="form-check form-check-sm ms-1">
+                    <input class="form-check-input" type="checkbox" value="true" id="discountedOnly"
+                        name="showDiscountedOnly" @(Model.ShowDiscountedOnly ? "checked" : "") />
+                    <label class="form-check-label small" for="discountedOnly">
+                        Only on sale
+                    </label>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- TRIPS GRID -->
+@if (!Model.Trips.Any())
+{
+    <p>No trips match your search. Try changing your filters.</p>
+}
+else
+{
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+
+        @foreach (var trip in Model.Trips)
+        {
+            <div class="col d-flex">
+                <div class="card trip-card h-100 shadow-sm flex-fill">
+
+                    <!-- Image -->
+                    <a asp-controller="Trips" asp-action="Details" asp-route-id="@trip.Id">
+                        <img src="@trip.MainImageUrl" class="card-img-top trip-image" alt="@trip.Name" />
+                    </a>
+
+                    <div class="card-body d-flex flex-column">
+
+                        <!-- Title + Badge -->
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h5 class="card-title mb-1">@trip.Destination</h5>
+                                <div class="trip-meta">
+                                    @trip.Country · @trip.PackageType
+                                    @if (trip.AgeLimit.HasValue)
+                                    {
+                                        <span> · @trip.AgeLimit+ only</span>
+                                    }
+                                </div>
+                            </div>
+
+                            @if (trip.HasActiveDiscount)
+                            {
+                                <span class="badge rounded-pill bg-discount">
+                                    Sale
+                                </span>
+                            }
+                        </div>
+
+                        <!-- Dates -->
+                        <p class="trip-meta mb-2">
+                            @trip.StartDate.ToString("dd MMM yyyy") –
+                            @trip.EndDate.ToString("dd MMM yyyy")
+                        </p>
+
+                        <!-- Description -->
+                        <p class="card-text small flex-grow-1">
+                            @trip.Description
+                        </p>
+
+                        <!-- Price -->
+                        <div class="mt-2">
+                            @if (trip.HasActiveDiscount)
+                            {
+                                <div class="d-flex align-items-baseline gap-2">
+                                    <span class="text-muted text-decoration-line-through small">
+                                        €@trip.BasePrice
+                                    </span>
+                                    <span class="trip-price-discount h5 mb-0">
+                                        €@trip.DiscountedPrice
+                                    </span>
+                                </div>
+
+                                @if (trip.DiscountEndDate.HasValue)
+                                {
+                                    <div class="small text-muted">
+                                        Discount until @trip.DiscountEndDate.Value.ToString("dd MMM")
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="h5 mb-0">€@trip.BasePrice</div>
+                            }
+
+                            <!-- Rooms -->
+                            <div class="mt-1">
+                                @if (trip.AvailableRooms <= 0)
+                                {
+                                    <span class="badge bg-secondary">Fully booked</span>
+                                }
+                                else if (trip.AvailableRooms <= 3)
+                                {
+                                    <span class="badge bg-danger-subtle text-danger">
+                                        Only @trip.AvailableRooms room(s) left
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success-subtle text-success">
+                                        @trip.AvailableRooms of @trip.TotalRooms rooms available
+                                    </span>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="mt-3 d-flex gap-2">
+                            <a asp-controller="Bookings" asp-action="Create" asp-route-tripId="@trip.Id"
+                                class="btn btn-buy-now flex-fill">
+                                Book Now
+                            </a>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        }
+
+    </div>
+}

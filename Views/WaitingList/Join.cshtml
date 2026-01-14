@@ -1,0 +1,12 @@
+<h2>Waiting List</h2>
+
+<p><strong>Trip:</strong> @ViewBag.TripName</p>
+<p>People waiting: <strong>@ViewBag.WaitingCount</strong></p>
+<p>Estimated availability: <strong>@ViewBag.EstimatedDays days</strong> (simple estimate)</p>
+
+<form asp-action="JoinConfirmed" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="tripId" value="@ViewBag.TripId" />
+    <button class="btn btn-primary">Join waiting list</button>
+    <a asp-controller="Trips" asp-action="Index" class="btn btn-secondary">Back</a>
+</form>

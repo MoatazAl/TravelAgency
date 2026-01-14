@@ -1,0 +1,87 @@
+@model TravelAgency.Models.ViewModels.CreateBookingViewModel
+
+@{
+    ViewData["Title"] = "Confirm your booking";
+}
+
+<div class="container py-5">
+
+    <div class="row g-4">
+
+        <!-- LEFT: IMAGE + DETAILS -->
+        <div class="col-lg-7">
+
+            <!-- HERO IMAGE -->
+            <div class="mb-4">
+                <img src="@Model.ImageUrl"
+                     class="img-fluid w-100 rounded-4"
+                     style="max-height:420px; object-fit:cover;"
+                     alt="@Model.PackageName" />
+            </div>
+
+            <h2 class="mb-1">@Model.PackageName</h2>
+            <p class="text-muted mb-3">
+                @Model.Destination
+            </p>
+
+            <!-- DATES -->
+            <div class="mb-3">
+                <strong>Dates:</strong><br />
+                @Model.DepartureDate.ToString("dd MMM yyyy")
+                –
+                @Model.ReturnDate.ToString("dd MMM yyyy")
+            </div>
+
+            <!-- CANCELLATION -->
+            <div class="text-muted small">
+                Free cancellation until
+                <strong>@Model.CancellationAllowedUntil.ToString("dd MMM yyyy")</strong>
+            </div>
+
+        </div>
+
+        <!-- RIGHT: PRICE + CONFIRM -->
+        <div class="col-lg-5">
+
+            <div class="card shadow-sm p-4">
+
+                <h4 class="mb-3">Price summary</h4>
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Trip price</span>
+                    <strong>€@Model.Price</strong>
+                </div>
+
+                <hr />
+
+                <div class="d-flex justify-content-between fs-5">
+                    <span>Total</span>
+                    <strong>€@Model.Price</strong>
+                </div>
+
+                <form asp-action="CreateConfirmed"
+                      method="post"
+                      class="mt-4">
+
+                    @Html.AntiForgeryToken()
+
+                    <input type="hidden" asp-for="TravelPackageId" />
+                    <input type="hidden" asp-for="Price" />
+                    <input type="hidden" asp-for="CancellationAllowedUntil" />
+
+                    <button type="submit"
+                            class="btn btn-buy-now w-100 py-2">
+                        Confirm booking
+                    </button>
+
+                </form>
+
+                <p class="text-muted small mt-3">
+                    You will be redirected to payment after confirmation.
+                </p>
+
+            </div>
+
+        </div>
+    </div>
+</div>

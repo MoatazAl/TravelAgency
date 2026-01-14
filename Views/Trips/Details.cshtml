@@ -1,0 +1,99 @@
+@model TravelAgency.Models.ViewModels.TripCardViewModel
+
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<div class="container py-4">
+
+    <!-- HERO IMAGE -->
+    <div class="mb-4">
+        <img src="@Model.MainImageUrl" alt="@Model.Name" class="img-fluid w-100 rounded-4"
+            style="max-height:480px; object-fit:cover;" />
+    </div>
+
+    <!-- HEADER -->
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <h2 class="mb-1">@Model.Name</h2>
+            <div class="text-muted">
+                @Model.Destination, @Model.Country · @Model.PackageType
+                @if (Model.AgeLimit.HasValue)
+                {
+                    <span> · @Model.AgeLimit+ only</span>
+                }
+            </div>
+        </div>
+
+        @if (Model.DiscountedPrice.HasValue)
+        {
+            <span class="badge bg-danger rounded-pill">Sale</span>
+        }
+    </div>
+
+    <!-- DATES -->
+    <p class="text-muted">
+        @Model.StartDate.ToString("dd MMM yyyy") –
+        @Model.EndDate.ToString("dd MMM yyyy")
+    </p>
+
+    <!-- DESCRIPTION -->
+    <p class="lead">
+        @Model.Description
+    </p>
+
+    <!-- PRICE -->
+    <div class="my-4">
+        @if (Model.DiscountedPrice.HasValue)
+        {
+            <div class="fs-5">
+                <span class="text-decoration-line-through text-muted me-2">
+                    €@Model.BasePrice
+                </span>
+                <span class="fw-bold text-danger fs-4">
+                    €@Model.DiscountedPrice
+                </span>
+            </div>
+        }
+        else
+        {
+            <div class="fw-bold fs-4">
+                €@Model.BasePrice
+            </div>
+        }
+    </div>
+
+    <!-- AVAILABILITY -->
+    <div class="mb-4">
+        @if (Model.AvailableRooms <= 0)
+        {
+            <span class="badge bg-secondary">Fully booked</span>
+        }
+        else
+        {
+            <span class="badge bg-success">
+                @Model.AvailableRooms of @Model.TotalRooms rooms available
+            </span>
+        }
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="d-flex gap-3">
+
+        <a asp-controller="Trips" asp-action="Index" class="btn btn-outline-secondary px-4">
+            ← Back to Trips
+        </a>
+
+        <form asp-controller="Bookings" asp-action="Create" method="get" class="m-0">
+
+            <input type="hidden" name="tripId" value="@Model.Id" />
+
+            <button type="submit" class="btn btn-buy-now px-5">
+                Book Now
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
