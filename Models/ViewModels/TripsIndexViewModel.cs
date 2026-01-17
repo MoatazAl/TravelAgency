@@ -33,6 +33,12 @@ namespace TravelAgency.Models.ViewModels
             DiscountEndDate.Value.Date >= DateTime.Today;
 
         public decimal EffectivePrice => HasActiveDiscount ? DiscountedPrice!.Value : BasePrice;
+        public bool IsAlreadyBookedByUser { get; set; }
+        public bool IsExpired { get; set; }
+        public bool IsBookingClosed { get; set; }
+        public List<TripReview> Reviews { get; set; } = new();
+        public bool CanReview { get; set; }
+
     }
 
     public class TripsIndexViewModel

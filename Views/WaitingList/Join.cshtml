@@ -1,12 +1,39 @@
-<h2>Waiting List</h2>
+@model TravelAgency.Models.TravelPackage
 
-<p><strong>Trip:</strong> @ViewBag.TripName</p>
-<p>People waiting: <strong>@ViewBag.WaitingCount</strong></p>
-<p>Estimated availability: <strong>@ViewBag.EstimatedDays days</strong> (simple estimate)</p>
+@{
+    ViewData["Title"] = "Join Waiting List";
+}
 
-<form asp-action="JoinConfirmed" method="post">
-    @Html.AntiForgeryToken()
-    <input type="hidden" name="tripId" value="@ViewBag.TripId" />
-    <button class="btn btn-primary">Join waiting list</button>
-    <a asp-controller="Trips" asp-action="Index" class="btn btn-secondary">Back</a>
-</form>
+<div class="container py-5" style="max-width:700px">
+
+    <h2 class="mb-3">Join the Waiting List</h2>
+
+    <p class="text-muted">
+        This trip is currently fully booked.
+    </p>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5>@Model.Name</h5>
+            <p class="text-muted">@Model.Destination, @Model.Country</p>
+            <hr />
+            <p>@ViewBag.WaitingCount people currently waiting</p>
+        </div>
+    </div>
+
+    <form asp-action="JoinConfirmed" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="tripId" value="@Model.Id" />
+
+        <button type="submit" class="btn btn-warning px-4">
+            Confirm & Join Waiting List
+        </button>
+
+        <a asp-controller="Trips"
+           asp-action="Details"
+           asp-route-id="@Model.Id"
+           class="btn btn-outline-secondary ms-2">
+            Cancel
+        </a>
+    </form>
+</div>

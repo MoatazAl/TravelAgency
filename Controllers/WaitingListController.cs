@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -24,7 +23,10 @@ namespace TravelAgency.Controllers
             _userManager = userManager;
         }
 
-        // GET: /WaitingList/Join?tripId=5
+        // =========================
+        // GET: /WaitingList/Join
+        // =========================
+        [HttpGet]
         public async Task<IActionResult> Join(int tripId)
         {
             var trip = await _context.TravelPackages
@@ -33,26 +35,27 @@ namespace TravelAgency.Controllers
             if (trip == null)
                 return NotFound();
 
-            // If rooms exist → do NOT allow waiting list
             if (trip.AvailableRooms > 0)
             {
-                return RedirectToAction("Create", "Bookings", new { tripId });
+                TempData["Error"] = "This trip is no longer fully booked.";
+                return RedirectToAction("Details", "Trips", new { id = tripId });
             }
 
-            int count = await _context.WaitingListEntries
+            if (trip.EndDate < DateTime.UtcNow)
+            {
+                TempData["Error"] = "This trip has already ended.";
+                return RedirectToAction("Index", "Trips");
+            }
+
+            ViewBag.WaitingCount = await _context.WaitingListEntries
                 .CountAsync(w => w.TravelPackageId == tripId);
 
-            ViewBag.TripId = tripId;
-            ViewBag.TripName = trip.Name;
-            ViewBag.WaitingCount = count;
-
-            // Simple ETA for PDF requirement
-            ViewBag.EstimatedDays = (count + 1) * 2;
-
-            return View();
+            return View(trip);
         }
 
+        // =========================
         // POST: /WaitingList/JoinConfirmed
+        // =========================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> JoinConfirmed(int tripId)
@@ -61,31 +64,36 @@ namespace TravelAgency.Controllers
             if (user == null)
                 return Unauthorized();
 
+            var trip = await _context.TravelPackages.FindAsync(tripId);
+            if (trip == null)
+                return NotFound();
+
+            if (trip.AvailableRooms > 0)
+            {
+                TempData["Error"] = "This trip is no longer fully booked.";
+                return RedirectToAction("Details", "Trips", new { id = tripId });
+            }
+
             bool alreadyWaiting = await _context.WaitingListEntries.AnyAsync(w =>
                 w.UserId == user.Id &&
                 w.TravelPackageId == tripId);
 
             if (alreadyWaiting)
             {
-                TempData["Error"] = "You are already on the waiting list.";
+                TempData["Info"] = "You are already on the waiting list.";
                 return RedirectToAction("MyBookings", "Bookings");
             }
 
-            int position = await _context.WaitingListEntries
-                .CountAsync(w => w.TravelPackageId == tripId) + 1;
-
-            var entry = new WaitingListEntry
+            _context.WaitingListEntries.Add(new WaitingListEntry
             {
                 UserId = user.Id,
                 TravelPackageId = tripId,
-                Position = position,
                 CreatedAt = DateTime.UtcNow
-            };
+            });
 
-            _context.WaitingListEntries.Add(entry);
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = "You joined the waiting list.";
+            TempData["Success"] = "You have been added to the waiting list.";
             return RedirectToAction("MyBookings", "Bookings");
         }
     }

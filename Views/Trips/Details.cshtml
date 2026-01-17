@@ -4,12 +4,28 @@
     ViewData["Title"] = Model.Name;
 }
 
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-warning mb-4">
+        @TempData["Error"]
+    </div>
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success mb-4">
+        @TempData["Success"]
+    </div>
+}
+
 <div class="container py-4">
 
     <!-- HERO IMAGE -->
     <div class="mb-4">
-        <img src="@Model.MainImageUrl" alt="@Model.Name" class="img-fluid w-100 rounded-4"
-            style="max-height:480px; object-fit:cover;" />
+        <img src="@Model.MainImageUrl"
+             alt="@Model.Name"
+             class="img-fluid w-100 rounded-4"
+             style="max-height:480px; object-fit:cover;" />
     </div>
 
     <!-- HEADER -->
@@ -33,9 +49,10 @@
 
     <!-- DATES -->
     <p class="text-muted">
-        @Model.StartDate.ToString("dd MMM yyyy") –
-        @Model.EndDate.ToString("dd MMM yyyy")
-    </p>
+    @Model.StartDate.ToString("dd MMM yyyy") –
+    @Model.EndDate.ToString("dd MMM yyyy")
+</p>
+
 
     <!-- DESCRIPTION -->
     <p class="lead">
@@ -48,17 +65,17 @@
         {
             <div class="fs-5">
                 <span class="text-decoration-line-through text-muted me-2">
-                    €@Model.BasePrice
+                    @Model.BasePrice.ToString("C")
                 </span>
                 <span class="fw-bold text-danger fs-4">
-                    €@Model.DiscountedPrice
+                    @Model.DiscountedPrice.Value.ToString("C")
                 </span>
             </div>
         }
         else
         {
             <div class="fw-bold fs-4">
-                €@Model.BasePrice
+                @Model.BasePrice.ToString("C")
             </div>
         }
     </div>
@@ -78,22 +95,122 @@
     </div>
 
     <!-- ACTIONS -->
-    <div class="d-flex gap-3">
+    <div class="d-flex flex-column gap-3">
 
-        <a asp-controller="Trips" asp-action="Index" class="btn btn-outline-secondary px-4">
+        <a asp-controller="Trips"
+           asp-action="Index"
+           class="btn btn-outline-secondary px-4 align-self-start">
             ← Back to Trips
         </a>
 
-        <form asp-controller="Bookings" asp-action="Create" method="get" class="m-0">
+        @if (Model.IsExpired)
+        {
+            <div class="alert alert-warning">
+                This trip has already ended and can no longer be booked.
+            </div>
+        }
+        else if (Model.IsBookingClosed)
+        {
+            <div class="alert alert-info">
+                Booking period for this trip has closed.
+            </div>
+        }
+        else if (Model.IsAlreadyBookedByUser)
+        {
+            <div class="d-flex gap-3 align-items-center">
+                <a asp-controller="Bookings"
+                   asp-action="MyBookings"
+                   class="btn btn-outline-primary px-4">
+                    View My Booking
+                </a>
 
-            <input type="hidden" name="tripId" value="@Model.Id" />
+                <span class="badge bg-secondary px-3 py-2">
+                    Already booked
+                </span>
+            </div>
+        }
+        else if (Model.AvailableRooms <= 0)
+        {
+            <!-- ✅ FIXED: GET navigation, NOT POST -->
+            <a asp-controller="WaitingList"
+               asp-action="Join"
+               asp-route-tripId="@Model.Id"
+               class="btn btn-warning px-5">
+                Join Waiting List
+            </a>
 
-            <button type="submit" class="btn btn-buy-now px-5">
-                Book Now
-            </button>
+            <div class="small text-muted">
+                You will be notified if a spot becomes available.
+            </div>
+        }
+        else
+        {
+            <form asp-controller="Bookings"
+                  asp-action="Create"
+                  method="get">
 
-        </form>
+                <input type="hidden" name="tripId" value="@Model.Id" />
 
+                <button type="submit" class="btn btn-success px-5">
+                    Book Now
+                </button>
+            </form>
+        }
     </div>
-
 </div>
+
+<hr />
+
+<h4>Reviews</h4>
+
+@if (Model.Reviews != null && Model.Reviews.Any())
+{
+    foreach (var r in Model.Reviews)
+    {
+        <div class="mb-3 border-bottom pb-2">
+            <strong>Rating:</strong> @r.Rating / 5<br />
+            <span>@Html.Encode(r.Comment)</span>
+            <div class="text-muted small">
+                @r.CreatedAt.ToShortDateString()
+            </div>
+        </div>
+    }
+}
+else
+{
+    <p class="text-muted">No reviews yet.</p>
+}
+
+@if (Model.CanReview)
+{
+    <hr />
+    <h5>Leave a review</h5>
+
+    <form asp-controller="TripReviews"
+          asp-action="Create"
+          method="post">
+
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="tripId" value="@Model.Id" />
+
+        <div class="mb-2">
+            <label class="form-label">Rating</label>
+            <select name="rating" class="form-select" required>
+                <option value="">Select</option>
+                @for (int i = 1; i <= 5; i++)
+                {
+                    <option value="@i">@i</option>
+                }
+            </select>
+        </div>
+
+        <div class="mb-2">
+            <label class="form-label">Comment</label>
+            <textarea name="comment" class="form-control"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+            Submit Review
+        </button>
+    </form>
+}

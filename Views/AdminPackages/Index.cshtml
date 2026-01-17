@@ -1,0 +1,63 @@
+@model List<TravelAgency.Models.TravelPackage>
+@{
+    Layout = "_AdminLayout";
+}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Dates</th>
+            <th>Price</th>
+            <th>Rooms</th>
+            <th>Visible</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        @foreach (var p in Model)
+        {
+            <tr>
+                <td>@p.Name</td>
+                <td>@p.StartDate.ToShortDateString() - @p.EndDate.ToShortDateString()</td>
+                <td>
+                    @if (p.DiscountedPrice != null)
+                    {
+                        <del>@p.BasePrice</del>
+                        <strong>@p.DiscountedPrice</strong>
+                    }
+                    else
+                    {
+                        @p.BasePrice
+                    }
+                </td>
+                <td>@p.AvailableRooms / @p.TotalRooms</td>
+                <td>
+                    <span class="badge @(p.IsVisible ? "bg-success" : "bg-secondary")">
+                        @(p.IsVisible ? "Visible" : "Hidden")
+                    </span>
+                </td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@p.Id" class="btn btn-sm btn-outline-primary">
+                        Edit
+                    </a>
+
+                    <form asp-action="ToggleVisibility" asp-route-id="@p.Id" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+
+                        <button class="btn btn-sm @(p.IsVisible ? "btn-outline-warning" : "btn-outline-success")">
+                            @(p.IsVisible ? "Hide" : "Show")
+                        </button>
+                    </form>
+
+                    <a asp-controller="AdminBookings" asp-action="WaitingList" asp-route-tripId="@p.Id"
+                        class="btn btn-sm btn-outline-dark">
+                        Waiting List
+                    </a>
+                </td>
+
+            </tr>
+        }
+    </tbody>
+</table>

@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using TravelAgency.Data;
+using TravelAgency.Models;
 using TravelAgency.Models.ViewModels;
 
 namespace TravelAgency.Controllers
@@ -9,18 +12,21 @@ namespace TravelAgency.Controllers
         private readonly UserManager<IdentityUser> _userManager;
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly TravelAgencyContext _context;
 
         public AccountController(
             UserManager<IdentityUser> userManager,
             SignInManager<IdentityUser> signInManager,
-            RoleManager<IdentityRole> roleManager)
+            RoleManager<IdentityRole> roleManager,
+            TravelAgencyContext context)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _roleManager = roleManager;
+            _context = context;
         }
 
-        // ------------------ REGISTER ------------------
+        // ================= REGISTER =================
         [HttpGet]
         public IActionResult Register()
         {
@@ -28,6 +34,7 @@ namespace TravelAgency.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
             if (!ModelState.IsValid)
@@ -41,25 +48,37 @@ namespace TravelAgency.Controllers
 
             var result = await _userManager.CreateAsync(user, model.Password);
 
-            if (result.Succeeded)
+            if (!result.Succeeded)
             {
-                // Assign default role USER
-                if (!await _roleManager.RoleExistsAsync("User"))
-                    await _roleManager.CreateAsync(new IdentityRole("User"));
+                foreach (var err in result.Errors)
+                    ModelState.AddModelError("", err.Description);
 
-                await _userManager.AddToRoleAsync(user, "User");
-
-                await _signInManager.SignInAsync(user, isPersistent: false);
-                return RedirectToAction("Index", "Home");
+                return View(model);
             }
 
-            foreach (var err in result.Errors)
-                ModelState.AddModelError("", err.Description);
+            // Ensure USER role exists
+            if (!await _roleManager.RoleExistsAsync("User"))
+                await _roleManager.CreateAsync(new IdentityRole("User"));
 
-            return View(model);
+            await _userManager.AddToRoleAsync(user, "User");
+
+            // Create User Profile
+            var profile = new UserProfile
+            {
+                UserId = user.Id,
+                FullName = model.FullName,
+                PhoneNumber = model.PhoneNumber,
+                DateOfBirth = model.DateOfBirth
+            };
+
+            _context.UserProfiles.Add(profile);
+            await _context.SaveChangesAsync();
+
+            await _signInManager.SignInAsync(user, false);
+            return RedirectToAction("Index", "Home");
         }
 
-        // ------------------ LOGIN ------------------
+        // ================= LOGIN =================
         [HttpGet]
         public IActionResult Login()
         {
@@ -67,6 +86,7 @@ namespace TravelAgency.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
             if (!ModelState.IsValid)
@@ -86,8 +106,9 @@ namespace TravelAgency.Controllers
             return View(model);
         }
 
-        // ------------------ LOGOUT ------------------
+        // ================= LOGOUT =================
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();

@@ -1,25 +1,57 @@
 @model TravelAgency.Models.ViewModels.RegisterViewModel
 
-<h2>Register</h2>
+@{
+    ViewData["Title"] = "Register";
+}
 
-<form asp-action="Register" method="post">
-    <div>
-        <label>Email</label>
-        <input asp-for="Email" class="form-control" />
-        <span asp-validation-for="Email" class="text-danger"></span>
-    </div>
+<div class="container mt-5" style="max-width: 500px;">
+    <h2 class="text-center mb-4">Create an Account</h2>
 
-    <div>
-        <label>Password</label>
-        <input asp-for="Password" type="password" class="form-control" />
-        <span asp-validation-for="Password" class="text-danger"></span>
-    </div>
+    <form asp-action="Register" method="post">
+        @Html.AntiForgeryToken()
 
-    <div>
-        <label>Confirm Password</label>
-        <input asp-for="ConfirmPassword" type="password" class="form-control" />
-        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
-    </div>
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input asp-for="Email" class="form-control" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
 
-    <button type="submit" class="btn btn-primary mt-3">Register</button>
-</form>
+        <div class="mb-3">
+            <label class="form-label">Full Name</label>
+            <input asp-for="FullName" class="form-control" />
+            <span asp-validation-for="FullName" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Phone Number</label>
+            <input asp-for="PhoneNumber" class="form-control" />
+            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Date of Birth</label>
+            <input asp-for="DateOfBirth" type="date" class="form-control" />
+            <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input asp-for="Password" type="password" class="form-control" />
+            <span asp-validation-for="Password" class="text-danger"></span>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label">Confirm Password</label>
+            <input asp-for="ConfirmPassword" type="password" class="form-control" />
+            <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-danger w-100">
+            Register
+        </button>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

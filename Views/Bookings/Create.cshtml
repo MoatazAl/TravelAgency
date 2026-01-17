@@ -32,6 +32,24 @@
                 @Model.ReturnDate.ToString("dd MMM yyyy")
             </div>
 
+            <!-- AGE LIMIT -->
+            @if (Model.AgeLimit.HasValue)
+            {
+                <div class="alert alert-warning py-2 px-3 mb-3">
+                    <strong>Age restriction:</strong>
+                    Minimum age @Model.AgeLimit years
+                </div>
+            }
+
+            <!-- BOOKING DEADLINE -->
+            @if (Model.BookingDeadline.HasValue)
+            {
+                <div class="text-muted small mb-2">
+                    Booking available until
+                    <strong>@Model.BookingDeadline.Value.ToString("dd MMM yyyy")</strong>
+                </div>
+            }
+
             <!-- CANCELLATION -->
             <div class="text-muted small">
                 Free cancellation until
@@ -66,8 +84,6 @@
                     @Html.AntiForgeryToken()
 
                     <input type="hidden" asp-for="TravelPackageId" />
-                    <input type="hidden" asp-for="Price" />
-                    <input type="hidden" asp-for="CancellationAllowedUntil" />
 
                     <button type="submit"
                             class="btn btn-buy-now w-100 py-2">

@@ -1,0 +1,46 @@
+@model List<TravelAgency.Models.Booking>
+@{
+    Layout = "_AdminLayout";
+}
+
+
+@{
+    ViewData["Title"] = "User Bookings";
+}
+
+<div class="container py-4">
+    <h3 class="mb-3">Bookings for @ViewBag.UserEmail</h3>
+
+    @if (!Model.Any())
+    {
+        <p class="text-muted">No bookings.</p>
+    }
+    else
+    {
+        <table class="table table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>Trip</th>
+                    <th>Departure</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var b in Model)
+                {
+                    <tr>
+                        <td>@b.TravelPackage.Name</td>
+                        <td>@b.DepartureDate.ToString("dd MMM yyyy")</td>
+                        <td>€@b.TotalPrice</td>
+                        <td>@b.Status</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <a asp-action="Index" class="btn btn-secondary mt-3">
+        Back to Users
+    </a>
+</div>

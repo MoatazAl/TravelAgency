@@ -1,7 +1,17 @@
-@model IEnumerable<TravelAgency.Models.Booking>
+@model List<TravelAgency.Models.ViewModels.MyBookingsItemViewModel>
 @using TravelAgency.Models
 
 <h2>My Bookings</h2>
+
+@if (ViewBag.Notifications != null)
+{
+    foreach (var n in ViewBag.Notifications)
+    {
+        <div class="alert alert-info text-center mb-3">
+            @n.Message
+        </div>
+    }
+}
 
 @if (!Model.Any())
 {
@@ -11,61 +21,115 @@ else
 {
     <table class="table">
         <thead>
-        <tr>
-            <th>Trip</th>
-            <th>Departure</th>
-            <th>Remaining</th>
-            <th>Total</th>
-            <th>Status</th>
-            <th></th>
-        </tr>
+            <tr>
+                <th>Trip</th>
+                <th>Departure</th>
+                <th>Remaining</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th class="text-end">Actions</th>
+            </tr>
         </thead>
         <tbody>
-        @foreach (var b in Model)
+
+        @foreach (var item in Model)
         {
-            var remainingDays = (b.DepartureDate.Date - DateTime.UtcNow.Date).Days;
-            <tr>
-                <td>
-                    <a asp-action="Details" asp-route-id="@b.Id" class="text-decoration-none fw-semibold">
-                        @b.TravelPackage.Name
-                    </a>
-                </td>
-                <td>@b.DepartureDate.ToString("dd MMM yyyy")</td>
-                <td>
-                    @if (remainingDays >= 0) { <span>@remainingDays days</span> }
-                    else { <span class="text-muted">Past</span> }
-                </td>
-                <td>€@b.TotalPrice</td>
-                <td>
-                    <span class="badge
-                        @(b.Status == BookingStatus.Confirmed ? "bg-success" :
-                          b.Status == BookingStatus.PendingPayment ? "bg-warning text-dark" :
-                          "bg-secondary")">
-                        @b.Status
-                    </span>
-                </td>
-                <td class="text-end">
-                    @if (b.Status == BookingStatus.PendingPayment)
-                    {
-                        <a asp-controller="Payments" asp-action="Pay" asp-route-bookingId="@b.Id"
-                           class="btn btn-sm btn-danger">Pay</a>
-                        <form asp-action="Cancel" method="post" class="d-inline">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@b.Id" />
-                            <button class="btn btn-sm btn-outline-danger">Cancel</button>
-                        </form>
-                    }
-                    else if (b.Status == BookingStatus.Confirmed && DateTime.Today <= b.CancellationAllowedUntil.Date)
-                    {
-                        <form asp-action="Cancel" method="post" class="d-inline">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@b.Id" />
-                            <button class="btn btn-sm btn-outline-danger">Cancel</button>
-                        </form>
-                    }
-                </td>
-            </tr>
+            // =========================
+            // CASE 1: REAL BOOKING
+            // =========================
+            if (item.Booking != null)
+            {
+                var b = item.Booking;
+                var remainingDays = (b.DepartureDate.Date - DateTime.UtcNow.Date).Days;
+
+                <tr>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@b.Id"
+                           class="text-decoration-none fw-semibold">
+                            @b.TravelPackage.Name
+                        </a>
+                    </td>
+
+                    <td>@b.DepartureDate.ToString("dd MMM yyyy")</td>
+
+                    <td>
+                        @if (remainingDays >= 0)
+                        {
+                            <span>@remainingDays days</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Past</span>
+                        }
+                    </td>
+
+                    <td>€@b.TotalPrice</td>
+
+                    <td>
+                        <span class="badge
+                            @(b.Status == BookingStatus.Confirmed ? "bg-success" :
+                              b.Status == BookingStatus.PendingPayment ? "bg-warning text-dark" :
+                              "bg-secondary")">
+                            @b.Status
+                        </span>
+                    </td>
+
+                    <td class="text-end">
+                        @* PAY + CANCEL *@
+                        @if (b.Status == BookingStatus.PendingPayment)
+                        {
+                            <a asp-controller="Payments"
+                               asp-action="Pay"
+                               asp-route-bookingId="@b.Id"
+                               class="btn btn-sm btn-danger me-1">
+                                Pay
+                            </a>
+
+                            <form asp-action="Cancel" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@b.Id" />
+                                <button class="btn btn-sm btn-outline-danger">Cancel</button>
+                            </form>
+                        }
+
+                        @* CONFIRMED: DOWNLOAD ITINERARY + CANCEL (if allowed) *@
+                        else if (b.Status == BookingStatus.Confirmed)
+                        {
+                            <a asp-action="DownloadItinerary"
+                               asp-route-id="@b.Id"
+                               class="btn btn-sm btn-outline-primary me-1">
+                                Download Itinerary
+                            </a>
+
+                            @if (DateTime.Today <= b.CancellationAllowedUntil.Date)
+                            {
+                                <form asp-action="Cancel" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@b.Id" />
+                                    <button class="btn btn-sm btn-outline-danger">Cancel</button>
+                                </form>
+                            }
+                        }
+                    </td>
+                </tr>
+            }
+
+            // =========================
+            // CASE 2: WAITING LIST ENTRY
+            // =========================
+            else if (item.Waiting != null)
+            {
+                <tr class="table-warning">
+                    <td colspan="6">
+                        <strong>@item.Waiting.TravelPackage.Name</strong><br />
+                        You are on the waiting list.<br />
+                        Position:
+                        <b>@item.WaitingPosition</b> / @item.WaitingCount
+                    </td>
+                </tr>
+            }
         }
+
         </tbody>
     </table>
 }

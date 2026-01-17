@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TravelAgency.Data;
 
@@ -10,9 +11,11 @@ using TravelAgency.Data;
 namespace TravelAgency.Migrations
 {
     [DbContext(typeof(TravelAgencyContext))]
-    partial class TravelAgencyContextModelSnapshot : ModelSnapshot
+    [Migration("20260115113248_AddUserNotifications")]
+    partial class AddUserNotifications
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.5");
@@ -367,9 +370,6 @@ namespace TravelAgency.Migrations
                     b.Property<decimal>("BasePrice")
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime?>("BookingDeadline")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Country")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -469,34 +469,6 @@ namespace TravelAgency.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("UserNotifications");
-                });
-
-            modelBuilder.Entity("TravelAgency.Models.UserProfile", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("DateOfBirth")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UserProfiles");
                 });
 
             modelBuilder.Entity("TravelAgency.Models.WaitingListEntry", b =>
@@ -627,17 +599,6 @@ namespace TravelAgency.Migrations
                         .IsRequired();
 
                     b.Navigation("TravelPackage");
-                });
-
-            modelBuilder.Entity("TravelAgency.Models.UserProfile", b =>
-                {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("TravelAgency.Models.WaitingListEntry", b =>

@@ -15,6 +15,8 @@ namespace TravelAgency.Models.ViewModels
 
         public DateTime DepartureDate { get; set; }
         public DateTime ReturnDate { get; set; }
+        public int? AgeLimit { get; set; }
+        public DateTime? BookingDeadline { get; set; }
 
         public DateTime CancellationAllowedUntil { get; set; }
     }

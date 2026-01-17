@@ -1,0 +1,39 @@
+@model TravelAgency.Models.TravelPackage
+@{
+    Layout = "_AdminLayout";
+}
+
+@{
+    ViewData["Title"] = "Delete Package";
+}
+
+<div class="container py-5">
+    <div class="card shadow-sm p-4 mx-auto" style="max-width:600px;">
+
+        <h3 class="text-danger mb-3">Delete Travel Package</h3>
+
+        <p>
+            Are you sure you want to delete the following package?
+        </p>
+
+        <div class="border rounded p-3 mb-3 bg-light">
+            <strong>@Model.Name</strong><br />
+            @Model.Destination, @Model.Country<br />
+            @Model.StartDate.ToString("dd MMM yyyy")
+            –
+            @Model.EndDate.ToString("dd MMM yyyy")
+        </div>
+
+        <form method="post">
+            @Html.AntiForgeryToken()
+
+            <button class="btn btn-danger px-4">
+                Yes, delete
+            </button>
+
+            <a asp-action="Index" class="btn btn-secondary ms-2">
+                Cancel
+            </a>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,88 @@
+@model TravelAgency.Models.TravelPackage
+@{
+    Layout = "_AdminLayout";
+}
+
+@{
+    ViewData["Title"] = "Edit Package";
+}
+
+<div class="container py-4">
+    <h2 class="mb-4">Edit Travel Package</h2>
+
+    <form method="post">
+        @Html.AntiForgeryToken()
+
+        <div class="row g-3">
+
+            <div class="col-md-6">
+                <label class="form-label">Name</label>
+                <input asp-for="Name" class="form-control" />
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Destination</label>
+                <input asp-for="Destination" class="form-control" />
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Country</label>
+                <input asp-for="Country" class="form-control" />
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Start Date</label>
+                <input asp-for="StartDate" type="date" class="form-control" />
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">End Date</label>
+                <input asp-for="EndDate" type="date" class="form-control" />
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Base Price (€)</label>
+                <input asp-for="BasePrice" class="form-control" />
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Discounted Price (€)</label>
+                <input asp-for="DiscountedPrice" class="form-control" />
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Total Rooms</label>
+                <input asp-for="TotalRooms" class="form-control" />
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Package Type</label>
+                <input asp-for="PackageType" class="form-control" />
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Age Limit</label>
+                <input asp-for="AgeLimit" class="form-control" />
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Description</label>
+                <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Image URLs (one per line)</label>
+                <textarea name="imageUrls" class="form-control" rows="3">
+@string.Join("\n", Model.Images.OrderByDescending(i => i.IsMain).Select(i => i.ImageUrl))
+                </textarea>
+                <small class="text-muted">First image is the main image</small>
+            </div>
+
+            <div class="col-12">
+                <button class="btn btn-danger px-4">Save Changes</button>
+                <a asp-action="Index" class="btn btn-secondary ms-2">Cancel</a>
+            </div>
+
+        </div>
+    </form>
+</div>

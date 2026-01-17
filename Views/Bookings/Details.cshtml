@@ -8,15 +8,25 @@
         Model.Status == BookingStatus.PendingPayment ||
         (Model.Status == BookingStatus.Confirmed &&
          DateTime.Today <= Model.CancellationAllowedUntil.Date);
+
+    var imageUrl = Model.TravelPackage.Images.FirstOrDefault()?.ImageUrl
+        ?? "/images/trips/placeholder.jpg";
 }
 
-<h2>Booking Details</h2>
+<h2 class="mb-3">Booking Details</h2>
 
-<div class="card p-4 mt-3">
+<!-- TRIP IMAGE -->
+<div class="mb-4">
+    <img src="@imageUrl"
+         class="img-fluid rounded shadow-sm w-100"
+         style="max-height: 420px; object-fit: cover;"
+         alt="@Model.TravelPackage.Name" />
+</div>
 
-    <h4>@Model.TravelPackage.Name</h4>
+<div class="card p-4 shadow-sm">
 
-    <!-- DATES видно وواضح -->
+    <h4 class="mb-3">@Model.TravelPackage.Name</h4>
+
     <p>
         <strong>Dates:</strong>
         @Model.DepartureDate.ToString("dd MMM yyyy")
@@ -43,30 +53,41 @@
         Booked on @Model.BookingDate.ToString("dd MMM yyyy")
     </p>
 
-    <!-- PAY ONLY IF PENDING -->
-    @if (Model.Status == BookingStatus.PendingPayment)
-    {
-        <a asp-controller="Payments"
-           asp-action="Pay"
-           asp-route-bookingId="@Model.Id"
-           class="btn btn-danger mt-2">
-            Pay Now
-        </a>
-    }
+    <!-- ACTIONS -->
+    <div class="mt-4 d-flex gap-2 flex-wrap">
 
-    <!-- CANCEL IF ALLOWED -->
-    @if (canCancel)
-    {
-        <form asp-action="Cancel" method="post" class="mt-3">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="id" value="@Model.Id" />
-            <button class="btn btn-outline-danger">
-                Cancel Booking
-            </button>
-        </form>
-    }
+        @if (Model.Status == BookingStatus.PendingPayment)
+        {
+            <a asp-controller="Payments"
+               asp-action="Pay"
+               asp-route-bookingId="@Model.Id"
+               class="btn btn-danger">
+                Pay Now
+            </a>
+        }
 
-    <a asp-action="MyBookings" class="btn btn-secondary mt-3">
+        @if (canCancel)
+        {
+            <form asp-action="Cancel" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <button class="btn btn-outline-danger">
+                    Cancel Booking
+                </button>
+            </form>
+        }
+
+        @if (Model.Status == BookingStatus.Confirmed)
+        {
+            <a asp-action="DownloadItinerary"
+               asp-route-id="@Model.Id"
+               class="btn btn-outline-primary">
+                Download Itinerary
+            </a>
+        }
+    </div>
+
+    <a asp-action="MyBookings" class="btn btn-secondary mt-4">
         Back to My Bookings
     </a>
 

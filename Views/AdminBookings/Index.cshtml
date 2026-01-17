@@ -1,0 +1,51 @@
+@model List<TravelAgency.Models.Booking>
+@{
+    Layout = "_AdminLayout";
+}
+
+@{
+    ViewData["Title"] = "All Bookings";
+}
+
+<div class="container py-4">
+    <h2 class="mb-4">All Bookings</h2>
+
+    <table class="table table-bordered align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Trip</th>
+                <th>User</th>
+                <th>Departure</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th class="text-end">Waiting List</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var b in Model)
+            {
+                <tr>
+                    <td>@b.TravelPackage.Name</td>
+                    <td>@b.UserId</td>
+                    <td>@b.DepartureDate.ToString("dd MMM yyyy")</td>
+                    <td>€@b.TotalPrice</td>
+                    <td>
+                        <span class="badge
+                            @(b.Status == BookingStatus.Confirmed ? "bg-success" :
+                              b.Status == BookingStatus.PendingPayment ? "bg-warning text-dark" :
+                              "bg-secondary")">
+                            @b.Status
+                        </span>
+                    </td>
+                    <td class="text-end">
+                        <a asp-action="WaitingList"
+                           asp-route-tripId="@b.TravelPackageId"
+                           class="btn btn-sm btn-outline-secondary">
+                            View
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

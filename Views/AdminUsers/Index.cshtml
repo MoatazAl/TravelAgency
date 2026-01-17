@@ -1,0 +1,63 @@
+@model List<TravelAgency.Models.ViewModels.AdminUserViewModel>
+@{
+    Layout = "_AdminLayout";
+}
+
+@{
+    ViewData["Title"] = "Manage Users";
+}
+
+<div class="container py-4">
+    <h2 class="mb-4">Manage Users</h2>
+
+    <table class="table table-bordered align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>Email</th>
+                <th>Bookings</th>
+                <th>Status</th>
+                <th class="text-end">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var u in Model)
+            {
+                <tr>
+                    <td>@u.Email</td>
+                    <td>@u.BookingCount</td>
+                    <td>
+                        @if (u.IsLocked)
+                        {
+                            <span class="badge bg-danger">Disabled</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                    </td>
+                    <td class="text-end">
+                        <a asp-action="Bookings" asp-route-id="@u.UserId" class="btn btn-sm btn-outline-secondary">
+                            View Bookings
+                        </a>
+
+                        <form asp-action="ToggleLock" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="userId" value="@u.UserId" />
+                            <button class="btn btn-sm btn-outline-danger">
+                                @(u.IsLocked ? "Enable" : "Disable")
+                            </button>
+                        </form>
+
+                        <!-- DELETE -->
+                        <a asp-action="Delete" asp-route-id="@u.UserId"
+                            class="btn btn-sm btn-outline-danger @(u.BookingCount > 0 ? "disabled" : "")"
+                            title="@(u.BookingCount > 0 ? "User has bookings" : "Delete user")">
+                            Delete
+                        </a>
+                    </td>
+
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

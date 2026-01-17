@@ -19,5 +19,8 @@ namespace TravelAgency.Data
         public DbSet<ServiceReview> ServiceReviews { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<UserProfile> UserProfiles { get; set; }
+        public DbSet<UserNotification> UserNotifications { get; set; }
+
     }
 }

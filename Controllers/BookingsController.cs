@@ -1,10 +1,12 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using TravelAgency.Data;
 using TravelAgency.Models;
 using TravelAgency.Models.ViewModels;
@@ -17,13 +19,22 @@ namespace TravelAgency.Controllers
     {
         private readonly TravelAgencyContext _context;
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly ILogger<BookingsController> _logger;
+
+        // Optional: if you already have a real email service, inject it.
+        // private readonly IEmailSender _emailSender;
 
         public BookingsController(
             TravelAgencyContext context,
-            UserManager<IdentityUser> userManager)
+            UserManager<IdentityUser> userManager,
+            ILogger<BookingsController> logger
+            // IEmailSender emailSender
+            )
         {
             _context = context;
             _userManager = userManager;
+            _logger = logger;
+            // _emailSender = emailSender;
         }
 
         // =========================
@@ -31,6 +42,10 @@ namespace TravelAgency.Controllers
         // =========================
         public async Task<IActionResult> Create(int tripId)
         {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Unauthorized();
+
             var trip = await _context.TravelPackages
                 .Include(t => t.Images)
                 .FirstOrDefaultAsync(t => t.Id == tripId);
@@ -38,11 +53,33 @@ namespace TravelAgency.Controllers
             if (trip == null)
                 return NotFound();
 
+            var today = DateTime.UtcNow.Date;
+
+            // 🚫 BLOCK: booking deadline passed
+            if (trip.BookingDeadline.HasValue &&
+                trip.BookingDeadline.Value.Date < today)
+            {
+                TempData["Error"] = "Booking period for this trip has ended.";
+                return RedirectToAction("Details", "Trips", new { id = trip.Id });
+            }
+
+
+            // 🚫 BLOCK: already booked this trip
+            bool alreadyBooked = await _context.Bookings.AnyAsync(b =>
+                b.UserId == user.Id &&
+                b.TravelPackageId == trip.Id &&
+                b.Status != BookingStatus.Cancelled);
+
+            if (alreadyBooked)
+            {
+                TempData["Error"] = "You already have an active booking for this trip.";
+                return RedirectToAction("Details", "Trips", new { id = trip.Id });
+            }
+
             if (trip.AvailableRooms <= 0)
             {
                 return RedirectToAction(nameof(WaitingList), new { tripId });
             }
-
 
             var vm = new CreateBookingViewModel
             {
@@ -61,6 +98,11 @@ namespace TravelAgency.Controllers
             return View(vm);
         }
 
+
+        // helper: what counts as "active booking" for constraints
+        private static bool IsActiveStatus(BookingStatus s) =>
+            s != BookingStatus.Cancelled;
+
         // =========================
         // STEP 2: CREATE (POST)
         // =========================
@@ -72,7 +114,29 @@ namespace TravelAgency.Controllers
             if (user == null)
                 return Unauthorized();
 
-            // RULE: max 3 upcoming trips
+            var trip = await _context.TravelPackages
+                .FirstOrDefaultAsync(t => t.Id == vm.TravelPackageId);
+
+            if (trip == null)
+                return NotFound();
+
+            var today = DateTime.UtcNow.Date;
+
+            // 🚫 BLOCK: trip already ended
+            if (trip.EndDate.Date < today)
+            {
+                TempData["Error"] = "This trip has already ended.";
+                return RedirectToAction("Details", "Trips", new { id = trip.Id });
+            }
+
+            // RULE 0: booking deadline
+            if (trip.BookingDeadline.HasValue && DateTime.Today > trip.BookingDeadline.Value)
+            {
+                TempData["Error"] = "Booking period for this trip has ended.";
+                return RedirectToAction("Details", "Trips", new { id = trip.Id });
+            }
+
+            // RULE 1: max 3 upcoming trips
             var upcomingCount = await _context.Bookings.CountAsync(b =>
                 b.UserId == user.Id &&
                 b.Status != BookingStatus.Cancelled &&
@@ -81,12 +145,48 @@ namespace TravelAgency.Controllers
             if (upcomingCount >= 3)
             {
                 TempData["Error"] = "You can only book up to 3 upcoming trips.";
-                return RedirectToAction("Details", "Trips", new { id = vm.TravelPackageId });
+                return RedirectToAction("Details", "Trips", new { id = trip.Id });
             }
 
+            // RULE 2: prevent duplicate booking
+            var alreadyBooked = await _context.Bookings.AnyAsync(b =>
+                b.UserId == user.Id &&
+                b.TravelPackageId == trip.Id &&
+                b.Status != BookingStatus.Cancelled);
+
+            if (alreadyBooked)
+            {
+                TempData["Error"] = "You already have an active booking for this trip.";
+                return RedirectToAction("Details", "Trips", new { id = trip.Id });
+            }
+
+            // RULE 3: age restriction
+            if (trip.AgeLimit.HasValue)
+            {
+                var profile = await _context.UserProfiles
+                    .FirstOrDefaultAsync(p => p.UserId == user.Id);
+
+                if (profile == null)
+                {
+                    TempData["Error"] = "User profile not found.";
+                    return RedirectToAction("Details", "Trips", new { id = trip.Id });
+                }
+
+                int age = DateTime.Today.Year - profile.DateOfBirth.Year;
+                if (profile.DateOfBirth.Date > DateTime.Today.AddYears(-age))
+                    age--;
+
+                if (age < trip.AgeLimit.Value)
+                {
+                    TempData["Error"] = $"This trip requires minimum age of {trip.AgeLimit}.";
+                    return RedirectToAction("Details", "Trips", new { id = trip.Id });
+                }
+            }
+
+            // TRANSACTION: last-room protection
             using var tx = await _context.Database.BeginTransactionAsync();
 
-            var trip = await _context.TravelPackages
+            trip = await _context.TravelPackages
                 .FirstOrDefaultAsync(t => t.Id == vm.TravelPackageId);
 
             if (trip == null)
@@ -95,33 +195,28 @@ namespace TravelAgency.Controllers
                 return NotFound();
             }
 
-            // RULE: prevent duplicate active booking of same trip
-            var alreadyBooked = await _context.Bookings.AnyAsync(b =>
-                b.UserId == user.Id &&
-                b.TravelPackageId == trip.Id &&
-                b.Status != BookingStatus.Cancelled);
-
-            if (alreadyBooked)
-            {
-                await tx.RollbackAsync();
-                TempData["Error"] = "You already have an active booking for this trip.";
-                return RedirectToAction("Details", "Trips", new { id = trip.Id });
-            }
-
-            // RULE: last-room protection
             if (trip.AvailableRooms <= 0)
             {
                 await tx.RollbackAsync();
                 return RedirectToAction("Join", "WaitingList", new { tripId = trip.Id });
             }
 
+            // PRICE: respect discount expiration
+            decimal finalPrice =
+                (trip.DiscountedPrice.HasValue &&
+                 trip.DiscountEndDate.HasValue &&
+                 trip.DiscountEndDate >= DateTime.Today)
+                ? trip.DiscountedPrice.Value
+                : trip.BasePrice;
+
             var booking = new Booking
             {
                 UserId = user.Id,
                 TravelPackageId = trip.Id,
-                TotalPrice = vm.Price,
+                TotalPrice = finalPrice,
                 DepartureDate = trip.StartDate,
-                CancellationAllowedUntil = vm.CancellationAllowedUntil,
+                CancellationAllowedUntil = trip.StartDate.AddDays(-7),
+                BookingDate = DateTime.UtcNow,
                 Status = BookingStatus.PendingPayment
             };
 
@@ -133,6 +228,8 @@ namespace TravelAgency.Controllers
 
             return RedirectToAction(nameof(Confirmation), new { id = booking.Id });
         }
+
+
 
         // =========================
         // STEP 3: CONFIRMATION
@@ -150,21 +247,99 @@ namespace TravelAgency.Controllers
         }
 
         // =========================
-        // MY BOOKINGS (Dashboard)
+        // MY BOOKINGS (Dashboard) + WAITING LIST POSITION
         // =========================
         public async Task<IActionResult> MyBookings()
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Unauthorized();
 
+            // =========================
+            // LOAD BOOKINGS FIRST
+            // =========================
             var bookings = await _context.Bookings
                 .Include(b => b.TravelPackage)
                 .Where(b => b.UserId == user.Id)
                 .OrderByDescending(b => b.BookingDate)
                 .ToListAsync();
 
-            return View(bookings);
+            // =========================
+            // CHECK IF ACTION IS NEEDED
+            // =========================
+            bool hasPendingPayment = bookings.Any(b =>
+                b.Status == BookingStatus.PendingPayment);
+
+            // =========================
+            // LOAD USER NOTIFICATIONS
+            // =========================
+            var notifications = await _context.UserNotifications
+                .Where(n => n.UserId == user.Id && !n.IsRead)
+                .OrderBy(n => n.CreatedAt)
+                .ToListAsync();
+
+            // =========================
+            // NOTIFICATION RULE
+            // =========================
+            if (!hasPendingPayment)
+            {
+                // Auto-cleanup: mark notifications as read
+                foreach (var n in notifications)
+                    n.IsRead = true;
+
+                if (notifications.Any())
+                    await _context.SaveChangesAsync();
+
+                ViewBag.Notifications = new List<UserNotification>();
+            }
+            else
+            {
+                ViewBag.Notifications = notifications;
+            }
+
+            // =========================
+            // LOAD WAITING LIST INFO
+            // =========================
+            var userWaiting = await _context.WaitingListEntries
+                .Include(w => w.TravelPackage)
+                .Where(w => w.UserId == user.Id)
+                .ToListAsync();
+
+            var waitingAll = await _context.WaitingListEntries
+                .OrderBy(w => w.CreatedAt)
+                .ToListAsync();
+
+            // =========================
+            // BUILD VIEW MODEL
+            // =========================
+            var items = new List<MyBookingsItemViewModel>();
+
+            foreach (var b in bookings)
+            {
+                items.Add(new MyBookingsItemViewModel
+                {
+                    Booking = b
+                });
+            }
+
+            foreach (var w in userWaiting)
+            {
+                var sameTrip = waitingAll
+                    .Where(x => x.TravelPackageId == w.TravelPackageId)
+                    .ToList();
+
+                var pos = sameTrip.FindIndex(x => x.Id == w.Id) + 1;
+
+                items.Add(new MyBookingsItemViewModel
+                {
+                    Waiting = w,
+                    WaitingCount = sameTrip.Count,
+                    WaitingPosition = pos
+                });
+            }
+
+            return View(items);
         }
+
 
         // =========================
         // BOOKING DETAILS
@@ -175,9 +350,9 @@ namespace TravelAgency.Controllers
             if (user == null) return Unauthorized();
 
             var booking = await _context.Bookings
-                .Include(b => b.TravelPackage)
-                .FirstOrDefaultAsync(b => b.Id == id && b.UserId == user.Id);
-
+    .Include(b => b.TravelPackage)
+        .ThenInclude(t => t.Images)
+    .FirstOrDefaultAsync(b => b.Id == id && b.UserId == user.Id);
             if (booking == null)
                 return NotFound();
 
@@ -185,21 +360,27 @@ namespace TravelAgency.Controllers
         }
 
         // =========================
-        // CANCEL BOOKING
+        // CANCEL BOOKING + AUTO-ASSIGN NEXT WAITLIST USER
         // =========================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Cancel(int id)
         {
             var user = await _userManager.GetUserAsync(User);
-            if (user == null) return Unauthorized();
+            if (user == null)
+                return Unauthorized();
+
+            using var tx = await _context.Database.BeginTransactionAsync();
 
             var booking = await _context.Bookings
                 .Include(b => b.TravelPackage)
                 .FirstOrDefaultAsync(b => b.Id == id && b.UserId == user.Id);
 
             if (booking == null)
+            {
+                await tx.RollbackAsync();
                 return NotFound();
+            }
 
             bool canCancel =
                 booking.Status == BookingStatus.PendingPayment ||
@@ -208,20 +389,71 @@ namespace TravelAgency.Controllers
 
             if (!canCancel)
             {
+                await tx.RollbackAsync();
                 TempData["Error"] = "This booking can no longer be cancelled.";
                 return RedirectToAction(nameof(Details), new { id });
             }
 
+            // 1️⃣ Cancel booking and free the room
             booking.Status = BookingStatus.Cancelled;
             booking.TravelPackage.AvailableRooms += 1;
 
             await _context.SaveChangesAsync();
+
+            // 2️⃣ Promote first user from waiting list (if exists)
+            var nextInLine = await _context.WaitingListEntries
+                .Where(w => w.TravelPackageId == booking.TravelPackageId)
+                .OrderBy(w => w.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (nextInLine != null)
+            {
+                var promotedBooking = new Booking
+                {
+                    UserId = nextInLine.UserId,
+                    TravelPackageId = booking.TravelPackageId,
+                    TotalPrice = booking.TravelPackage.DiscountedPrice
+                                 ?? booking.TravelPackage.BasePrice,
+                    DepartureDate = booking.TravelPackage.StartDate,
+                    CancellationAllowedUntil = booking.TravelPackage.StartDate.AddDays(-7),
+                    Status = BookingStatus.PendingPayment,
+                    BookingDate = DateTime.UtcNow
+                };
+
+                booking.TravelPackage.AvailableRooms -= 1;
+
+                _context.Bookings.Add(promotedBooking);
+                _context.WaitingListEntries.Remove(nextInLine);
+
+                // 🔔 CREATE NOTIFICATION
+                _context.UserNotifications.Add(new UserNotification
+                {
+                    UserId = nextInLine.UserId,
+                    Message = "Good news! A room is now available for a trip you were waiting for. Please complete payment within the allowed time.",
+                    IsRead = false
+                });
+
+                // 🔥 THIS WAS THE MISSING LINE
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "WAITLIST PROMOTION: User {UserId} promoted to booking {BookingId} for trip {TripId}",
+                    nextInLine.UserId,
+                    promotedBooking.Id,
+                    booking.TravelPackageId
+                );
+            }
+
+            await tx.CommitAsync();
 
             TempData["Success"] = "Booking cancelled successfully.";
             return RedirectToAction(nameof(MyBookings));
         }
 
 
+        // =========================
+        // PDF ITINERARY
+        // =========================
         [Authorize]
         public async Task<IActionResult> DownloadItinerary(int id)
         {
@@ -239,10 +471,12 @@ namespace TravelAgency.Controllers
                 return NotFound();
 
             var pdf = ItineraryPdfService.Generate(booking);
-
             return File(pdf, "application/pdf", $"Itinerary_{booking.Id}.pdf");
         }
 
+        // =========================
+        // WAITING LIST PAGE (count)
+        // =========================
         [Authorize]
         public async Task<IActionResult> WaitingList(int tripId)
         {

@@ -27,9 +27,11 @@ namespace TravelAgency.Models
 
         public bool IsVisible { get; set; } = true;
         public int PopularityScore { get; set; } = 0;
+        public DateTime? BookingDeadline { get; set; }
 
         public ICollection<PackageImage> Images { get; set; } = new List<PackageImage>();
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
         public ICollection<WaitingListEntry> WaitingList { get; set; } = new List<WaitingListEntry>();
+        
     }
 }

@@ -1,0 +1,42 @@
+@model List<(string Email, DateTime CreatedAt)>
+
+@{
+    ViewData["Title"] = "Waiting List";
+}
+
+<div class="container py-4">
+    <h2 class="mb-3">
+        Waiting List – @ViewBag.TripName
+    </h2>
+
+    @if (!Model.Any())
+    {
+        <p class="text-muted">No users are currently on the waiting list.</p>
+    }
+    else
+    {
+        <table class="table table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>Email</th>
+                    <th>Joined At</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Email</td>
+                    <td>@item.CreatedAt.ToString("dd MMM yyyy HH:mm")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+
+    <a asp-controller="AdminPackages"
+       asp-action="Index"
+       class="btn btn-secondary mt-3">
+        Back to Packages
+    </a>
+</div>

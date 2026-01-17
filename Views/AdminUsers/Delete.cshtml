@@ -1,0 +1,38 @@
+@using Microsoft.AspNetCore.Identity
+@model IdentityUser
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Delete User";
+}
+
+<h3>Delete User</h3>
+
+<p>
+    Are you sure you want to delete user
+    <strong>@Model.Email</strong>?
+</p>
+
+@if ((int)ViewBag.BookingCount > 0)
+{
+    <div class="alert alert-warning">
+        This user has @ViewBag.BookingCount booking(s) and cannot be deleted.
+    </div>
+
+    <a asp-action="Index" class="btn btn-secondary">Back</a>
+}
+else
+{
+    <form asp-action="DeleteConfirmed" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@Model.Id" />
+
+        <button class="btn btn-danger">
+            Yes, delete user
+        </button>
+
+        <a asp-action="Index" class="btn btn-secondary ms-2">
+            Cancel
+        </a>
+    </form>
+}
