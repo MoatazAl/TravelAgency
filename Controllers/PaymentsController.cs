@@ -11,6 +11,7 @@ using TravelAgency.Models.ViewModels;
 namespace TravelAgency.Controllers
 {
     [Authorize]
+    [RequireHttps]
     public class PaymentsController : Controller
     {
         private readonly TravelAgencyContext _context;
@@ -52,21 +53,6 @@ namespace TravelAgency.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Process(PaymentViewModel vm)
         {
-            if (!ModelState.IsValid)
-                return View("Pay", vm);
-
-            // Expiry validation (server-side)
-            var expiryDate = new DateTime(
-                vm.ExpiryYear,
-                vm.ExpiryMonth,
-                DateTime.DaysInMonth(vm.ExpiryYear, vm.ExpiryMonth));
-
-            if (expiryDate < DateTime.Today)
-            {
-                ModelState.AddModelError("", "Card has expired.");
-                return View("Pay", vm);
-            }
-
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
                 return Unauthorized();
@@ -77,25 +63,120 @@ namespace TravelAgency.Controllers
             if (booking == null || booking.Status != BookingStatus.PendingPayment)
                 return BadRequest("Invalid booking state.");
 
-            // 🔐 Card data intentionally ignored after validation
+            // Handle PayPal - Redirect to simulated PayPal page
+            if (vm.PaymentMethod == "PayPal")
+            {
+                // Store booking info in TempData for after redirect
+                TempData["PayPalBookingId"] = vm.BookingId;
+                // Redirect to PayPal simulation page
+                return RedirectToAction("PayPalCheckout");
+            }
 
-            var payment = new Payment
+            // Handle Credit Card (existing code)
+            if (vm.PaymentMethod == "CreditCard")
+            {
+                // Validate card fields are present
+                if (string.IsNullOrEmpty(vm.CardNumber) || string.IsNullOrEmpty(vm.CVV))
+                {
+                    ModelState.AddModelError("", "Credit card information is required.");
+                    return View("Pay", vm);
+                }
+
+                // Expiry validation
+                var expiryDate = new DateTime(
+                    vm.ExpiryYear,
+                    vm.ExpiryMonth,
+                    DateTime.DaysInMonth(vm.ExpiryYear, vm.ExpiryMonth));
+
+                if (expiryDate < DateTime.Today)
+                {
+                    ModelState.AddModelError("", "Card has expired.");
+                    return View("Pay", vm);
+                }
+
+                // 🔐 Card data intentionally ignored after validation (not stored!)
+
+                var payment = new Payment
+                {
+                    UserId = user.Id,
+                    Amount = booking.TotalPrice,
+                    PaymentMethod = "CreditCard",
+                    TransactionReference = "CC-" + Guid.NewGuid().ToString(),
+                    Status = PaymentStatus.Success
+                };
+
+                booking.Status = BookingStatus.Confirmed;
+                booking.Payment = payment;
+
+                _context.Payments.Add(payment);
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = "Payment completed successfully!";
+                return RedirectToAction("Index", "Home");
+            }
+
+            return BadRequest("Invalid payment method.");
+        }
+
+        // GET: Payments/PayPalCheckout - Simulates PayPal redirection
+        public IActionResult PayPalCheckout()
+        {
+            if (TempData["PayPalBookingId"] == null)
+                return RedirectToAction("Index", "Home");
+
+            ViewBag.Amount = TempData["PayPalAmount"];
+            TempData.Keep("PayPalBookingId"); // Keep for the next request
+            TempData.Keep("PayPalAmount");
+
+            return View();
+        }
+
+        // POST: Payments/PayPalReturn - Handles return from PayPal
+        [HttpPost]
+        public async Task<IActionResult> PayPalReturn(
+    string status,
+    string paypalEmail,
+    string paypalPassword)
+        {
+            // We intentionally ignore paypalEmail and paypalPassword
+            // They are NOT validated and NOT stored (simulation only)
+
+            if (TempData["PayPalBookingId"] == null)
+                return RedirectToAction("Index", "Home");
+
+            int bookingId = (int)TempData["PayPalBookingId"];
+
+            if (status == "cancel")
+            {
+                TempData["Warning"] = "PayPal payment was cancelled.";
+                return RedirectToAction("Pay", new { bookingId });
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            var booking = await _context.Bookings
+                .FirstOrDefaultAsync(b => b.Id == bookingId);
+
+            if (booking == null || booking.Status != BookingStatus.PendingPayment)
+                return BadRequest("Invalid booking state.");
+
+            var paypalPayment = new Payment
             {
                 UserId = user.Id,
                 Amount = booking.TotalPrice,
-                PaymentMethod = "CreditCard",
-                TransactionReference = Guid.NewGuid().ToString(),
+                PaymentMethod = "PayPal",
+                TransactionReference = "PAYPAL-" + Guid.NewGuid(),
                 Status = PaymentStatus.Success
             };
 
             booking.Status = BookingStatus.Confirmed;
-            booking.Payment = payment;
+            booking.Payment = paypalPayment;
 
-            _context.Payments.Add(payment);
+            _context.Payments.Add(paypalPayment);
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = "Payment completed successfully!";
+            TempData["Success"] = "Payment completed successfully via PayPal!";
             return RedirectToAction("Index", "Home");
         }
+
     }
 }

@@ -1,0 +1,78 @@
+@{
+    ViewData["Title"] = "PayPal Checkout";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            
+            @* Simulated PayPal Page *@
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white text-center">
+                    <h3>
+                        <img src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" alt="PayPal" style="height: 30px;" />
+                        PayPal Checkout
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>ℹ️ Simulation Notice</strong><br/>
+                        This is a simulated PayPal checkout page for demonstration purposes.
+                        In production, you would be redirected to the actual PayPal website.
+                    </div>
+
+                    <div class="mb-4">
+                        <h5>Order Summary</h5>
+                        <hr/>
+                        <div class="d-flex justify-content-between">
+                            <span>Amount:</span>
+                            <strong>€@ViewBag.Amount</strong>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+    <label class="form-label">PayPal Email</label>
+    <input type="email"
+           name="paypalEmail"
+           class="form-control"
+           placeholder="your-email@example.com"
+           required />
+</div>
+
+<div class="mb-3">
+    <label class="form-label">Password</label>
+    <input type="password"
+           name="paypalPassword"
+           class="form-control"
+           placeholder="••••••••"
+           required />
+</div>
+
+
+                    <div class="d-grid gap-2 mt-4">
+                        <form asp-action="PayPalReturn" method="post">
+                            <button type="submit" name="status" value="success" class="btn btn-primary btn-lg w-100 mb-2">
+                                ✓ Complete Payment
+                            </button>
+                            <button type="submit" name="status" value="cancel" class="btn btn-outline-secondary w-100">
+                                Cancel and Return
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="text-muted text-center mt-3">
+                        <small>🔒 Secured by PayPal</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-3">
+                <small class="text-muted">
+                    Note: This simulates the PayPal API redirection required by the project.
+                    In production, this would be replaced with actual PayPal API integration.
+                </small>
+            </div>
+
+        </div>
+    </div>
+</div>

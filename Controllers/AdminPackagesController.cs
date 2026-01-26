@@ -118,12 +118,17 @@ public class AdminPackagesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, TravelPackage updated)
     {
-        var package = await _context.TravelPackages.FindAsync(id);
+        var package = await _context.TravelPackages
+            .FirstOrDefaultAsync(p => p.Id == id);
+
         if (package == null)
             return NotFound();
 
         // 🧠 Calculate booked rooms BEFORE update
         int bookedRooms = package.TotalRooms - package.AvailableRooms;
+
+        // store old availability to detect increase
+        int oldAvailable = package.AvailableRooms;
 
         // ✅ Update editable fields
         package.Name = updated.Name;
@@ -140,15 +145,50 @@ public class AdminPackagesController : Controller
         package.BookingDeadline = updated.BookingDeadline;
         package.TotalRooms = updated.TotalRooms;
 
-        // 🔥 FIX: recalculate availability
+        // 🔥 Recalculate availability correctly
         package.AvailableRooms = Math.Max(
             0,
             updated.TotalRooms - bookedRooms
         );
 
         await _context.SaveChangesAsync();
-        TempData["Success"] = "Package updated successfully.";
 
+        // =====================================================
+        // ✅ AUTO-PROMOTE WAITING LIST IF ROOMS INCREASED
+        // =====================================================
+        if (package.AvailableRooms > oldAvailable)
+        {
+            var waitingList = await _context.WaitingListEntries
+                .Where(w => w.TravelPackageId == package.Id)
+                .OrderBy(w => w.CreatedAt)
+                .ToListAsync();
+
+            while (package.AvailableRooms > 0 && waitingList.Count > 0)
+            {
+                var entry = waitingList[0];
+
+                _context.Bookings.Add(new Booking
+                {
+                    UserId = entry.UserId,
+                    TravelPackageId = package.Id,
+                    TotalPrice = package.DiscountedPrice ?? package.BasePrice,
+                    BookingDate = DateTime.UtcNow,
+                    DepartureDate = package.StartDate,
+                    CancellationAllowedUntil = package.StartDate.AddDays(-7),
+                    Status = BookingStatus.PendingPayment 
+                });
+
+
+                _context.WaitingListEntries.Remove(entry);
+                package.AvailableRooms--;
+
+                waitingList.RemoveAt(0);
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        TempData["Success"] = "Package updated successfully.";
         return RedirectToAction(nameof(Index));
     }
 

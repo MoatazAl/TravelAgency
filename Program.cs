@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TravelAgency.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using TravelAgency.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,10 +26,22 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<TravelAgencyContext>()
 .AddDefaultTokenProviders();
 
+builder.Services.AddScoped<IEmailSender, ConsoleEmailSender>();
+
 // Allow Login Redirection
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Account/Login";
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // ← Require HTTPS for cookies
+});
+
+// ---------------------------------------
+// ✅ HTTPS ENFORCEMENT
+// ---------------------------------------
+builder.Services.AddHsts(options =>
+{
+    options.IncludeSubDomains = true;
+    options.MaxAge = TimeSpan.FromDays(365);
 });
 
 // MVC Controllers + Views + Services
@@ -48,10 +61,12 @@ await SeedAdminAsync(app);
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
+    app.UseHsts(); // ← Enable HSTS in production
 }
 
+// ✅ FORCE HTTPS REDIRECTION
 app.UseHttpsRedirection();
+
 app.UseStaticFiles();
 
 app.UseRouting();
@@ -64,7 +79,6 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}"
 );
 
-
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<TravelAgencyContext>();
@@ -72,7 +86,6 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
-
 
 // ---------------------------------------
 // SEEDING METHOD
@@ -120,4 +133,3 @@ static async Task SeedAdminAsync(WebApplication app)
         await userManager.AddToRoleAsync(adminUser, adminRole);
     }
 }
-

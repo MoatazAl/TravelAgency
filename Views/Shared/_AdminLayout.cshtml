@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8" />
     <title>@ViewData["Title"] - Admin | NoorAgency</title>
@@ -10,62 +11,67 @@
 
 <body class="bg-light">
 
-<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm px-4">
-    <a class="navbar-brand fw-bold text-danger" asp-controller="Admin" asp-action="Index">
-        NoorAgency · Admin
-    </a>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm px-4">
+        <a class="navbar-brand fw-bold text-danger" asp-controller="Admin" asp-action="Index">
+            NoorAgency · Admin
+        </a>
 
-    <form asp-controller="Account" asp-action="Logout" method="post">
-        <button class="btn btn-outline-danger btn-sm">
-    Logout
-</button>
+        <form asp-controller="Account" asp-action="Logout" method="post">
+            <button class="btn btn-outline-danger btn-sm">
+                Logout
+            </button>
 
-    </form>
-</nav>
+        </form>
+    </nav>
 
-<div class="container-fluid">
-    <div class="row">
+    <div class="container-fluid">
+        <div class="row">
 
-        <!-- SIDEBAR -->
-        <aside class="col-md-2 bg-white border-end min-vh-100 p-3">
-            <div class="list-group list-group-flush">
+            <!-- SIDEBAR -->
+            <aside class="col-md-2 bg-white border-end min-vh-100 p-3 admin-sidebar">
+                <div class="list-group list-group-flush">
 
-                <a asp-controller="Admin"
-                   asp-action="Index"
-                   class="list-group-item list-group-item-action">
-                    Dashboard
-                </a>
+                    <a asp-controller="Admin" asp-action="Index" class="list-group-item list-group-item-action">
+                        Dashboard
+                    </a>
 
-                <a asp-controller="AdminPackages"
-                   asp-action="Index"
-                   class="list-group-item list-group-item-action">
-                    Packages
-                </a>
+                    <a asp-controller="AdminPackages" asp-action="Index" class="list-group-item list-group-item-action">
+                        Packages
+                    </a>
 
-                <a asp-controller="AdminBookings"
-                   asp-action="Index"
-                   class="list-group-item list-group-item-action">
-                    Bookings & Waiting
-                </a>
+                    <a asp-controller="AdminBookings" asp-action="Index" class="list-group-item list-group-item-action">
+                        Bookings
+                    </a>
 
-                <a asp-controller="AdminUsers"
-                   asp-action="Index"
-                   class="list-group-item list-group-item-action">
-                    Users
-                </a>
+                    <a asp-controller="WaitingList" asp-action="Index" class="list-group-item list-group-item-action">
+                        Waiting List
+                    </a>
 
-            </div>
-        </aside>
 
-        <!-- MAIN CONTENT -->
-        <main class="col-md-10 p-4">
-            @RenderBody()
-        </main>
+                    <a asp-controller="AdminUsers" asp-action="Index" class="list-group-item list-group-item-action">
+                        Users
+                    </a>
+                    
+                    <a asp-controller="AdminReviews" asp-action="Index" class="list-group-item list-group-item-action">
+                        Reviews
+                    </a>
 
+
+
+                </div>
+            </aside>
+
+
+            <!-- MAIN CONTENT -->
+            <main class="col-md-10 p-4">
+                @RenderBody()
+            </main>
+
+        </div>
     </div>
-</div>
 
-<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-@RenderSection("Scripts", required: false)
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @RenderSection("Scripts", required: false)
 </body>
+
 </html>

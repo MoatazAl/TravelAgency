@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelAgency.Data;
+using TravelAgency.Models;
 
 [Authorize(Roles = "Admin")]
 public class AdminBookingsController : Controller
@@ -49,4 +50,7 @@ public class AdminBookingsController : Controller
         ViewBag.TripName = trip.Name;
         return View(model);
     }
+
+
+
 }

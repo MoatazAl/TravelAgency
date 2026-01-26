@@ -11,6 +11,7 @@ using TravelAgency.Data;
 using TravelAgency.Models;
 using TravelAgency.Models.ViewModels;
 using TravelAgency.Services;
+using Microsoft.AspNetCore.Identity.UI.Services;
 
 namespace TravelAgency.Controllers
 {
@@ -22,19 +23,19 @@ namespace TravelAgency.Controllers
         private readonly ILogger<BookingsController> _logger;
 
         // Optional: if you already have a real email service, inject it.
-        // private readonly IEmailSender _emailSender;
+        private readonly IEmailSender _emailSender;
 
         public BookingsController(
             TravelAgencyContext context,
             UserManager<IdentityUser> userManager,
-            ILogger<BookingsController> logger
-            // IEmailSender emailSender
+            ILogger<BookingsController> logger,
+            IEmailSender emailSender
             )
         {
             _context = context;
             _userManager = userManager;
             _logger = logger;
-            // _emailSender = emailSender;
+            _emailSender = emailSender;
         }
 
         // =========================
@@ -394,13 +395,13 @@ namespace TravelAgency.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            // 1️⃣ Cancel booking and free the room
+            // 1️⃣ Cancel booking
             booking.Status = BookingStatus.Cancelled;
             booking.TravelPackage.AvailableRooms += 1;
 
             await _context.SaveChangesAsync();
 
-            // 2️⃣ Promote first user from waiting list (if exists)
+            // 2️⃣ Promote first waiting list user (if exists)
             var nextInLine = await _context.WaitingListEntries
                 .Where(w => w.TravelPackageId == booking.TravelPackageId)
                 .OrderBy(w => w.CreatedAt)
@@ -416,8 +417,8 @@ namespace TravelAgency.Controllers
                                  ?? booking.TravelPackage.BasePrice,
                     DepartureDate = booking.TravelPackage.StartDate,
                     CancellationAllowedUntil = booking.TravelPackage.StartDate.AddDays(-7),
-                    Status = BookingStatus.PendingPayment,
-                    BookingDate = DateTime.UtcNow
+                    BookingDate = DateTime.UtcNow,
+                    Status = BookingStatus.PendingPayment
                 };
 
                 booking.TravelPackage.AvailableRooms -= 1;
@@ -425,7 +426,7 @@ namespace TravelAgency.Controllers
                 _context.Bookings.Add(promotedBooking);
                 _context.WaitingListEntries.Remove(nextInLine);
 
-                // 🔔 CREATE NOTIFICATION
+                // 🔔 In-app notification
                 _context.UserNotifications.Add(new UserNotification
                 {
                     UserId = nextInLine.UserId,
@@ -433,8 +434,20 @@ namespace TravelAgency.Controllers
                     IsRead = false
                 });
 
-                // 🔥 THIS WAS THE MISSING LINE
                 await _context.SaveChangesAsync();
+
+                // 📧 EMAIL NOTIFICATION (ConsoleEmailSender)
+                var promotedUser = await _userManager.FindByIdAsync(nextInLine.UserId);
+
+                if (promotedUser?.Email != null)
+                {
+                    await _emailSender.SendEmailAsync(
+                        promotedUser.Email,
+                        "A room is now available!",
+                        $"Good news!\n\nA room is now available for the trip \"{booking.TravelPackage.Name}\".\n" +
+                        $"Please log in and complete payment within the allowed time.\n\n— NoorAgency"
+                    );
+                }
 
                 _logger.LogInformation(
                     "WAITLIST PROMOTION: User {UserId} promoted to booking {BookingId} for trip {TripId}",
@@ -449,6 +462,7 @@ namespace TravelAgency.Controllers
             TempData["Success"] = "Booking cancelled successfully.";
             return RedirectToAction(nameof(MyBookings));
         }
+
 
 
         // =========================

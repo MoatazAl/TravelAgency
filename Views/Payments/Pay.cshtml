@@ -1,72 +1,148 @@
 @model TravelAgency.Models.ViewModels.PaymentViewModel
 
-<h2>Secure Payment</h2>
-
-<p><strong>Trip:</strong> @Model.TripName</p>
-<p><strong>Total:</strong> €@Model.Amount</p>
-
-<form asp-action="Process" method="post" class="mt-4">
-    @Html.AntiForgeryToken()
-
-    <input type="hidden" asp-for="BookingId" />
-    <input type="hidden" asp-for="Amount" />
-    <input type="hidden" asp-for="TripName" />
-
-    <div class="mb-3">
-        <label class="form-label">Payment method</label>
-        <select asp-for="PaymentMethod" class="form-select">
-            <option value="CreditCard">Credit Card</option>
-            <option value="PayPal">PayPal</option>
-        </select>
-    </div>
-
-    <div class="mb-3">
-        <label asp-for="CardNumber" class="form-label"></label>
-        <input asp-for="CardNumber" class="form-control" placeholder="16 digits" />
-        <span asp-validation-for="CardNumber" class="text-danger"></span>
-    </div>
-
+<div class="container mt-4">
     <div class="row">
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Expiry month</label>
-            <select asp-for="ExpiryMonth" class="form-select">
-                @for (int m = 1; m <= 12; m++)
+        <div class="col-md-8 offset-md-2">
+            
+            @* SSL STATUS INDICATOR *@
+            <div class="alert @(Context.Request.IsHttps ? "alert-success" : "alert-danger") mb-4">
+                <strong>🔒 Connection Status:</strong> 
+                @if(Context.Request.IsHttps)
                 {
-                    <option value="@m">@m.ToString("D2")</option>
+                    <span class="text-success">
+                        Secure HTTPS Connection (SSL Enabled)
+                    </span>
                 }
-            </select>
-        </div>
+                else
+                {
+                    <span class="text-danger">
+                        ⚠ Insecure HTTP Connection
+                    </span>
+                }
+            </div>
 
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Expiry year</label>
-            <select asp-for="ExpiryYear" class="form-select">
-                @{
-                    var startYear = DateTime.UtcNow.Year; // 2026 for you now
-                    var endYear = startYear + 10;
-                }
-                @for (int y = startYear; y <= endYear; y++)
-                {
-                    <option value="@y">@y</option>
-                }
-            </select>
+            <h2>Secure Payment</h2>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <p><strong>Trip:</strong> @Model.TripName</p>
+                    <p><strong>Total:</strong> €@Model.Amount</p>
+                </div>
+            </div>
+
+            <form asp-action="Process" method="post" class="mt-4" id="paymentForm">
+                @Html.AntiForgeryToken()
+
+                <input type="hidden" asp-for="BookingId" />
+                <input type="hidden" asp-for="Amount" />
+                <input type="hidden" asp-for="TripName" />
+
+                <div class="mb-3">
+                    <label class="form-label">Payment method</label>
+                    <select asp-for="PaymentMethod" class="form-select" id="paymentMethodSelect">
+                        <option value="CreditCard">Credit Card</option>
+                        <option value="PayPal">PayPal</option>
+                    </select>
+                </div>
+
+                @* CREDIT CARD FIELDS - Show only when Credit Card is selected *@
+                <div id="creditCardFields">
+                    <div class="mb-3">
+                        <label asp-for="CardNumber" class="form-label">Card Number</label>
+                        <input asp-for="CardNumber" class="form-control" placeholder="1234 5678 9012 3456" maxlength="16" />
+                        <span asp-validation-for="CardNumber" class="text-danger"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Expiry month</label>
+                            <select asp-for="ExpiryMonth" class="form-select">
+                                @for (int m = 1; m <= 12; m++)
+                                {
+                                    <option value="@m">@m.ToString("D2")</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Expiry year</label>
+                            <select asp-for="ExpiryYear" class="form-select">
+                                @{
+                                    var startYear = DateTime.UtcNow.Year;
+                                    var endYear = startYear + 10;
+                                }
+                                @for (int y = startYear; y <= endYear; y++)
+                                {
+                                    <option value="@y">@y</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="CVV" class="form-label">CVV</label>
+                        <input asp-for="CVV" class="form-control" placeholder="123" maxlength="3" />
+                        <span asp-validation-for="CVV" class="text-danger"></span>
+                    </div>
+                </div>
+
+                @* PAYPAL INFO - Show only when PayPal is selected *@
+                <div id="paypalInfo" style="display: none;">
+                    <div class="alert alert-info">
+                        <strong>ℹ️ PayPal Payment</strong><br/>
+                        You will be redirected to PayPal to complete your payment securely.
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-success btn-lg w-100">
+                    <span id="payButtonText">🔒 Pay Securely with Credit Card</span>
+                </button>
+
+                <div class="alert alert-info mt-3">
+                    <small>
+                        <strong>🔐 Security Notice:</strong><br/>
+                        • This page uses SSL/TLS encryption<br/>
+                        • No credit card details are stored in our database<br/>
+                        • Your payment information is processed securely
+                    </small>
+                </div>
+            </form>
+
         </div>
     </div>
-
-    <div class="mb-3">
-        <label asp-for="CVV" class="form-label"></label>
-        <input asp-for="CVV" class="form-control" placeholder="3 digits" />
-        <span asp-validation-for="CVV" class="text-danger"></span>
-    </div>
-
-    <button type="submit" class="btn btn-success btn-lg w-100">
-        Pay Securely
-    </button>
-
-    <p class="text-muted mt-3">
-        No credit card details are stored in the database.
-    </p>
-</form>
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        // Show/hide fields based on payment method selection
+        document.getElementById('paymentMethodSelect').addEventListener('change', function() {
+            const method = this.value;
+            const creditCardFields = document.getElementById('creditCardFields');
+            const paypalInfo = document.getElementById('paypalInfo');
+            const payButton = document.getElementById('payButtonText');
+            
+            if (method === 'PayPal') {
+                creditCardFields.style.display = 'none';
+                paypalInfo.style.display = 'block';
+                payButton.textContent = '🔒 Continue to PayPal';
+                
+                // Clear credit card validation when PayPal is selected
+                document.getElementById('CardNumber').removeAttribute('required');
+                document.getElementById('CVV').removeAttribute('required');
+            } else {
+                creditCardFields.style.display = 'block';
+                paypalInfo.style.display = 'none';
+                payButton.textContent = '🔒 Pay Securely with Credit Card';
+                
+                // Restore credit card validation
+                document.getElementById('CardNumber').setAttribute('required', 'required');
+                document.getElementById('CVV').setAttribute('required', 'required');
+            }
+        });
+        
+        // Initialize on page load
+        document.getElementById('paymentMethodSelect').dispatchEvent(new Event('change'));
+    </script>
 }

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelAgency.Data;
 using TravelAgency.Models;
+using TravelAgency.Models.ViewModels;
 
 namespace TravelAgency.Controllers
 {
@@ -96,5 +97,41 @@ namespace TravelAgency.Controllers
             TempData["Success"] = "You have been added to the waiting list.";
             return RedirectToAction("MyBookings", "Bookings");
         }
+
+        // =========================
+        // ADMIN: View Waiting List
+        // =========================
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Index()
+        {
+            var entries = await _context.WaitingListEntries
+                .Include(w => w.TravelPackage)
+                .OrderBy(w => w.TravelPackageId)
+                .ThenBy(w => w.CreatedAt)
+                .ToListAsync();
+
+            var users = _userManager.Users.ToDictionary(u => u.Id, u => u.Email);
+
+            var model = entries
+    .GroupBy(e => e.TravelPackageId)
+    .SelectMany(g => g
+        .OrderBy(e => e.CreatedAt)
+        .Select((w, index) => new WaitingListAdminVM
+        {
+            EntryId = w.Id,
+            TripTitle = w.TravelPackage.Name,
+            AvailableRooms = w.TravelPackage.AvailableRooms,
+            UserEmail = users.ContainsKey(w.UserId) ? users[w.UserId] : "Unknown",
+            RequestedAt = w.CreatedAt,
+            Position = index + 1   
+        }))
+    .ToList();
+
+
+            return View(model);
+        }
+
+
+
     }
 }

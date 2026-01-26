@@ -126,3 +126,109 @@ main {
 footer {
     margin-top: 3rem;
 }
+
+:root {
+    --noor-pink: #e91e63;
+    --noor-pink-hover: #d81b60;
+    --noor-pink-soft: #fde4ef;
+}
+
+.admin-sidebar .list-group-item {
+    color: var(--noor-pink);
+    background-color: transparent;
+    border: none;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    margin-bottom: 0.2rem;
+}
+
+.admin-sidebar .list-group-item:hover {
+    background-color: var(--noor-pink-soft);
+    color: var(--noor-pink-hover);
+}
+
+.admin-sidebar .list-group-item.active {
+    background-color: var(--noor-pink-soft);
+    color: var(--noor-pink);
+    font-weight: 600;
+}
+
+
+/* Optional: subtle left indicator */
+.admin-sidebar .list-group-item.active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background-color: #ffffff;
+    border-radius: 0 4px 4px 0;
+}
+
+/* ---------------------------------------------------------
+   LOGIN PAGE
+--------------------------------------------------------- */
+
+.login-visual {
+    background: linear-gradient(135deg, #ff5a5f, #ff8a8f);
+    background-image:
+        linear-gradient(135deg, #ff5a5f, #ff8a8f),
+        url("/images/login-bg.jpg"); /* optional */
+    background-size: cover;
+    background-position: center;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 2.5rem;
+    border-radius: 1.25rem;
+    background-color: #ffffff;
+    box-shadow: 0 1.25rem 3rem rgba(0, 0, 0, 0.08);
+}
+
+.login-card h2 {
+    font-weight: 700;
+    color: #212529;
+}
+
+.login-input {
+    border-radius: 0.75rem;
+    padding: 0.7rem 0.9rem;
+}
+
+.login-input:focus {
+    border-color: var(--noor-pink);
+    box-shadow: 0 0 0 0.15rem rgba(233, 30, 99, 0.25);
+}
+
+.btn-login {
+    background-color: var(--noor-pink);
+    border: none;
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0.65rem;
+    border-radius: 0.75rem;
+}
+
+.btn-login:hover {
+    background-color: var(--noor-pink-hover);
+}
+
+.login-link {
+    color: var(--noor-pink);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.login-link:hover {
+    text-decoration: underline;
+}
+
+.login-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center bottom;
+
+}

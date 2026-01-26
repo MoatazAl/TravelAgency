@@ -37,6 +37,18 @@ namespace TravelAgency.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
+            // 🔥 kill stale DOB errors forever
+            ModelState.Remove(nameof(model.DateOfBirth));
+
+            // 🔎 DOB validation (ONLY place it belongs)
+            if (model.DateOfBirth < new DateTime(1900, 1, 1) ||
+                model.DateOfBirth > DateTime.Today)
+            {
+                ModelState.AddModelError(
+                    nameof(model.DateOfBirth),
+                    "Please enter a valid date of birth");
+            }
+
             if (!ModelState.IsValid)
                 return View(model);
 
@@ -56,13 +68,11 @@ namespace TravelAgency.Controllers
                 return View(model);
             }
 
-            // Ensure USER role exists
             if (!await _roleManager.RoleExistsAsync("User"))
                 await _roleManager.CreateAsync(new IdentityRole("User"));
 
             await _userManager.AddToRoleAsync(user, "User");
 
-            // Create User Profile
             var profile = new UserProfile
             {
                 UserId = user.Id,

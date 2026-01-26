@@ -19,9 +19,9 @@ namespace TravelAgency.Models.ViewModels
 
         [Required]
         [DataType(DataType.Date)]
-        [Range(typeof(DateTime), "01/01/1900", "12/31/2025",
-    ErrorMessage = "Please enter a valid date of birth")]
+        [Display(Name = "Date of Birth")]
         public DateTime DateOfBirth { get; set; }
+
 
         [Required, DataType(DataType.Password)]
         public string Password { get; set; } = null!;
